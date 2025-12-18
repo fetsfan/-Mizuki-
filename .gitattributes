@@ -1,1 +1,3 @@
 *.js linguist-language=astro
+README.zh.md linguist-detectable=true
+README.md linguist-detectable=false
