@@ -39,12 +39,22 @@ export const getStaticPaths: GetStaticPaths = async () => {
 
 let fontCache: { regular: Buffer | null; bold: Buffer | null } | null = null;
 
-async function fetchNotoSansSCFonts() {
+async function fetchFonts() {
 	if (fontCache) {
 		return fontCache;
 	}
 
 	try {
+        const fontPath = "./public/assets/font/ZenMaruGothic-Medium.ttf";
+        
+        if (fs.existsSync(fontPath)) {
+            const fontBuffer = fs.readFileSync(fontPath);
+            fontCache = { regular: fontBuffer, bold: fontBuffer };
+            return fontCache;
+        }
+
+        console.warn(`Local font not found at ${fontPath}, trying Google Fonts fallback...`);
+
 		const cssResp = await fetch(
 			"https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap",
 		);
@@ -104,7 +114,7 @@ export async function GET({
 
 	// Try to fetch fonts from Google Fonts (woff2) at runtime.
 	const { regular: fontRegular, bold: fontBold } =
-		await fetchNotoSansSCFonts();
+		await fetchFonts();
 
 	// Avatar + icon: still read from disk (small assets)
 	const avatarBuffer = fs.readFileSync(`./src/${profileConfig.avatar}`);
@@ -314,9 +324,14 @@ export async function GET({
 		},
 	};
 
-	const fonts: FontOptions[] = [];
+	const svgOptions: any = {
+		width: 1200,
+		height: 630,
+		fonts: [] as FontOptions[],
+	};
+
 	if (fontRegular) {
-		fonts.push({
+		svgOptions.fonts.push({
 			name: "Noto Sans SC",
 			data: fontRegular,
 			weight: 400,
@@ -324,7 +339,7 @@ export async function GET({
 		});
 	}
 	if (fontBold) {
-		fonts.push({
+		svgOptions.fonts.push({
 			name: "Noto Sans SC",
 			data: fontBold,
 			weight: 700,
@@ -332,11 +347,7 @@ export async function GET({
 		});
 	}
 
-	const svg = await satori(template, {
-		width: 1200,
-		height: 630,
-		fonts,
-	});
+	const svg = await satori(template as any, svgOptions);
 
 	const png = await sharp(Buffer.from(svg)).png().toBuffer();
 
